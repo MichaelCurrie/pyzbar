@@ -208,21 +208,21 @@ def decode(image, symbols=None):
 
     results = []
     with _image_scanner() as scanner:
-        if symbols:
-            # Disable all but the symbols of interest
-            disable = set(ZBarSymbol).difference(symbols)
-            for symbol in disable:
-                zbar_image_scanner_set_config(
-                    scanner, symbol, ZBarConfig.CFG_ENABLE, 0
-                )
-            # I think it likely that zbar will detect all symbol types by
-            # default, in which case enabling the types of interest is
-            # redundant but it seems sensible to be over-cautious and enable
-            # them.
-            for symbol in symbols:
-                zbar_image_scanner_set_config(
-                    scanner, symbol, ZBarConfig.CFG_ENABLE, 1
-                )
+        if symbols is None:
+            symbols_to_enable = set(ZBarSymbol)
+        else:
+            # Ensure we enable only valid symbols
+            symbols_to_enable = set(ZBarSymbol).intersection(symbols)
+
+        # Disable all but the symbols of interest
+        symbols_to_disable = set(ZBarSymbol).difference(symbols_to_enable)
+
+        for symbol in symbols_to_disable:
+            zbar_image_scanner_set_config(scanner, symbol, ZBarConfig.CFG_ENABLE, 0)
+
+        for symbol in symbols_to_enable:
+            zbar_image_scanner_set_config(scanner, symbol, ZBarConfig.CFG_ENABLE, 1)
+
         with _image() as img:
             zbar_image_set_format(img, _FOURCC['L800'])
             zbar_image_set_size(img, width, height)
